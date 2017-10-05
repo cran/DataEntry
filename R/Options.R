@@ -2,7 +2,7 @@
 OptionsDlg <- function(...)
 {
     if(!is.null(DEenv$optw)){
-        focus(DEenv$optw)
+        focus(DEenv$optw) <- TRUE
         return(invisible(NULL))
     }
 
@@ -22,22 +22,30 @@ OptionsDlg <- function(...)
                 horizontal = FALSE, container = g)
     if(is.null(DEenv$ProjOpt)){
         cbDrop <- gcheckbox(gettext("Put valid values in dropdown list", domain = "R-DataEntry"),
-                            checked = DEenv$ProjOpt$droplist, container = p)
-        cbEmpty <- gcheckbox(gettext("Allow blank cells", domain = "R-DataEntry"),
-                             checked = DEenv$ProjOpt$emptycell, container = p)
-        gm <- ggroup(container = p)
-        glabel(gettext("Text representing missing values: ", domain = "R-DataEntry"),
-               container = gm, anchor = c(-1, 1))
-        edMissV <- gedit("", width = 4, container = gm)
-    } else {
-        cbDrop <- gcheckbox(gettext("Put valid values in dropdown list", domain = "R-DataEntry"),
                             checked = FALSE, container = p)
         cbEmpty <- gcheckbox(gettext("Allow blank cells", domain = "R-DataEntry"),
                              checked = FALSE, container = p)
         gm <- ggroup(container = p)
         glabel(gettext("Text representing missing values: ", domain = "R-DataEntry"),
                container = gm, anchor = c(-1, 1))
+        edMissV <- gedit("", width = 4, container = gm)
+        gw <- ggroup(container = p)
+        glabel(gettext("Edit box width (number of characters): ",
+                       domain = "R-DataEntry"), container = gw)
+        edBoxWd <- gedit("25", width = 3, container = gw)
+    } else {
+        cbDrop <- gcheckbox(gettext("Put valid values in dropdown list", domain = "R-DataEntry"),
+                            checked = DEenv$ProjOpt$droplist, container = p)
+        cbEmpty <- gcheckbox(gettext("Allow blank cells", domain = "R-DataEntry"),
+                             checked = DEenv$ProjOpt$emptycell, container = p)
+        gm <- ggroup(container = p)
+        glabel(gettext("Text representing missing values: ", domain = "R-DataEntry"),
+               container = gm, anchor = c(-1, 1))
         edMissV <- gedit(DEenv$ProjOpt$missv, width = 4, container = gm)
+        gw <- ggroup(container = p)
+        glabel(gettext("Edit box width (number of characters): ",
+                       domain = "R-DataEntry"), container = gw)
+        edBoxWd <- gedit(as.character(DEenv$ProjOpt$editwidth), width = 3, container = gw)
     }
 
     a <- gframe(gettext("Application options", domain = "R-DataEntry"),
@@ -79,19 +87,31 @@ OptionsDlg <- function(...)
     SetOptions <- function(...)
     {
         if(!IsNumericInt(svalue(edNBcks), "integer")){
-            focus(edNBcks)
+            focus(edNBcks) <- TRUE
             return(invisible(NULL))
+        }
+        if(!IsNumericInt(svalue(edBoxWd), "integer")){
+            focus(edBoxWd) <- TRUE
+            return(invisible(NULL))
+        } else {
+            edbw <- as.integer(svalue(edBoxWd))
+            if(is.na(edbw) || edbw < 1 || edbw > 999){
+                gmessage(gettext("Please, enter a integer number between 1 and 999.",
+                                 domain = "R-DataEntry"), type = "warning")
+                focus(edBoxWd) <- TRUE
+                return(invisible(NULL))
+            }
         }
         if(as.integer(svalue(edNBcks)) < 1){
             gmessage(gettext("Please, enter a positive integer number.",
                              domain = "R-DataEntry"), type = "warning")
-            focus(edNBcks)
+            focus(edNBcks) <- TRUE
             return(invisible(NULL))
         }
         if(!svalue(cbEmpty) && svalue(edMissV) == ""){
             gmessage(gettext("You must define the string representing missing values.",
                              domain = "R-DataEntry"), type = "warning")
-            focus(edMissV)
+            focus(edMissV) <- TRUE
             return(invisible(NULL))
         }
 
@@ -105,6 +125,7 @@ OptionsDlg <- function(...)
             DEenv$ProjOpt$droplist  <- svalue(cbDrop)
             DEenv$ProjOpt$emptycell <- svalue(cbEmpty)
             DEenv$ProjOpt$missv     <- svalue(edMissV)
+            DEenv$ProjOpt$editwidth <- edbw
             SaveProject()
         }
         DEenv$AppOpt$bckopen    <- svalue(cbBckOpen)
@@ -145,5 +166,5 @@ OptionsDlg <- function(...)
     addHandlerClicked(btOK, SetOptions)
     ShowHide()
     visible(DEenv$optw) <- TRUE
-    focus(btCancel)
+    focus(btCancel) <- TRUE
 }

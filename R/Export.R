@@ -1,22 +1,7 @@
-
-ExportCSV <- function(fname, sep, how, keepid)
-{
-    d <- DEenv$Data
-    if(!keepid)
-        d$id <- NULL
-
-    # TODO: Add variable labels to sps script.
-    data.frame2csv(d, fname, sep, how)
-
-    msg <- sprintf(gettext("Data exported to \"%s\"", domain = "R-DataEntry"),
-                   paste0(fname, ".csv"))
-    gmessage(msg, type = "info")
-}
-
 ExportDlg <- function(...)
 {
     if(!is.null(DEenv$expw)){
-        focus(DEenv$expw)
+        focus(DEenv$expw) <- TRUE
         return(invisible(NULL))
     }
 
@@ -37,17 +22,25 @@ ExportDlg <- function(...)
     cbExpid <- gcheckbox(gettext("Include the column \"id\"",
                                  domain = "R-DataEntry"), checked = DEenv$AppOpt$expid, container = g)
 
-    nm <-  sub(".dte$", "", basename(DEenv$fpath))
-    nm <- gsub("[[:punct:]]", ".", nm)
-    nm <- gsub("[ \t]", ".", nm)
+    if(is.null(DEenv$ProjOpt$obname)){
+        obname <- NA
+        try(obname <- abbreviate(sub("\\....$", "", basename(DEenv$fpath)), 5),
+            silent = TRUE)
+        if(is.na(obname))
+            obname <- sub(".dte$", "", basename(DEenv$fpath))
+        obname <- gsub("[[:punct:]]", ".", obname)
+        obname <- gsub("[ \t]", ".", obname)
+        DEenv$ProjOpt$obname <- obname
+    }
 
     gon <- ggroup(container = g)
     lbObnm <- glabel(gettext("Object name:", domain = "R-DataEntry"), container = gon)
-    edObnm <- gedit(nm, width = 20, container = gon)
+    edObnm <- gedit(DEenv$ProjOpt$obname, width = 20, container = gon)
 
     gfn <- ggroup(container = g)
     lbFnm <- glabel(gettext("File name:", domain = "R-DataEntry"), container = gfn)
-    edFnm <- gedit(nm, width = 20, container = gfn)
+    edFnm <- gedit(sub(".dte$", "", basename(DEenv$fpath)),
+                   width = 20, container = gfn)
 
     gcsv <- ggroup(horizontal = FALSE, container = g)
     lbFac <- glabel(gettext("How to write factor variables?", domain = "R-DataEntry"),
@@ -63,13 +56,13 @@ ExportDlg <- function(...)
                          gettext("Tab", domain = "R-DataEntry")),
                        container = gcsv, selected = DEenv$AppOpt$expsep, horizontal = FALSE)
 
-    grda <- ggroup(horizontal = FALSE, container = g)
+    glbl <- ggroup(horizontal = FALSE, container = g)
     lbLbl <- glabel(gettext("What to do with variable labels?", domain = "R-DataEntry"),
-                    container = grda, anchor = c(-1, 1))
-    rdExplbl <- gradio(c(gettext("Nothing", domain = "R-DataEntry"),
+                    container = glbl, anchor = c(-1, 1))
+    rdExplbl <- gradio(c(gettext("Add a \"label\" attribute to each column", domain = "R-DataEntry"),
                          gettext("Add a \"variable.labels\" attribute to the data.frame", domain = "R-DataEntry"),
-                         gettext("Add a \"label\" attribute to each column", domain = "R-DataEntry")),
-                       container = grda, selected = DEenv$AppOpt$explbl, horizontal = FALSE)
+                         gettext("Nothing", domain = "R-DataEntry")),
+                       container = glbl, selected = DEenv$AppOpt$explbl, horizontal = FALSE)
 
     addSpring(g)
     gbt <- ggroup(container = g)
@@ -82,25 +75,16 @@ ExportDlg <- function(...)
         exphow <- svalue(rdExphow, index = TRUE)
         visible(gfn) <- FALSE
         visible(gon) <- FALSE
-        visible(lbFac) <- FALSE
-        visible(rdExpfct) <- FALSE
-        visible(lbSep) <- FALSE
-        visible(rdExpsep) <- FALSE
-        visible(lbLbl) <- FALSE
-        visible(rdExplbl) <- FALSE
+        visible(gcsv) <- FALSE
+        visible(glbl) <- FALSE
         if(exphow < 3)
             visible(gfn) <- TRUE
         if(exphow > 1)
             visible(gon) <- TRUE
-        if(exphow == 1){
-            visible(lbFac) <- TRUE
-            visible(rdExpfct) <- TRUE
-            visible(lbSep) <- TRUE
-            visible(rdExpsep) <- TRUE
-        } else {
-            visible(lbLbl) <- TRUE
-            visible(rdExplbl) <- TRUE
-        }
+        if(exphow == 1)
+            visible(gcsv) <- TRUE
+        if(exphow > 1 || (exphow == 1 && svalue(rdExpfct, index = TRUE) == 2))
+            visible(glbl) <- TRUE
     }
 
     onOKclick <- function(...)
@@ -110,45 +94,59 @@ ExportDlg <- function(...)
         DEenv$AppOpt$expsep <- svalue(rdExpsep, index = TRUE)
         DEenv$AppOpt$explbl <- svalue(rdExplbl, index = TRUE)
         DEenv$AppOpt$expid  <- svalue(cbExpid)
+        DEenv$ProjOpt$obname <- svalue(edObnm)
 
         SaveAppOpt()
-
-        if(DEenv$AppOpt$exphow == 1){
-            sep <- c(",", ";", "\\t")[DEenv$AppOpt$expsep]
-            how <- c("char", "R", "SPSS")[DEenv$AppOpt$expfct]
-            ExportCSV(paste0(dirname(DEenv$fpath), "/", svalue(edFnm)),
-                      sep, how, svalue(cbExpid))
-            dispose(DEenv$expw)
-            return(invisible(NULL))
-        }
+        SaveProject()
 
         d <- DEenv$Data
         if(!svalue(cbExpid))
             d$id <- NULL
-        if(DEenv$AppOpt$explbl == 2){
-            attr(d, "variable.labels") <- sapply(DEenv$VarAttr, function(x) x$label)
-        } else if(DEenv$AppOpt$explbl == 3){
+        if(DEenv$AppOpt$explbl == 1){
             for(n in names(d))
                 attr(d[[n]], "label") <- DEenv$VarAttr[[n]]$label
+        } else if(DEenv$AppOpt$explbl == 2){
+            vlbs <- sapply(DEenv$VarAttr, function(x) x$label)
+            vlbs <- vlbs[names(d)]
+            attr(d, "variable.labels") <- vlbs
         }
 
-        if(DEenv$AppOpt$exphow == 2){
+        if(DEenv$AppOpt$exphow == 1){
+            fname <- paste0(dirname(DEenv$fpath), "/", svalue(edFnm))
+            sep <- c(",", ";", "\\t")[DEenv$AppOpt$expsep]
+            how <- c("char", "R", "SPSS")[DEenv$AppOpt$expfct]
+            keepid <- svalue(cbExpid)
+            dispose(DEenv$expw)
+            data.frame2csv(d, DEenv$ProjOpt$obname, fname, sep, how)
+            if(how == "char")
+                msg <- sprintf(gettext("Data exported to \"%s\".",
+                                       domain = "R-DataEntry"),
+                               paste0(fname, ".csv"))
+            else
+                msg <- sprintf(gettext("Data exported to \"%s\", and script generated as \"%s\".",
+                                       domain = "R-DataEntry"),
+                               paste0(fname, ".csv"),
+                               paste0(fname, ifelse(how == "R", ".R", ".sps")))
+            gmessage(msg, type = "info")
+        } else if(DEenv$AppOpt$exphow == 2){
             assign(svalue(edObnm), d)
             fn <- paste0(dirname(DEenv$fpath), "/", svalue(edFnm), ".RData")
             save(list = svalue(edObnm), file = fn)
             msg <- sprintf(gettext("Data exported to \"%s\"", domain = "R-DataEntry"), fn)
+            dispose(DEenv$expw)
             gmessage(msg, type = "info")
         } else {
             assign(svalue(edObnm), d, envir = .GlobalEnv)
+            dispose(DEenv$expw)
         }
-        dispose(DEenv$expw)
     }
 
 
     addHandlerChanged(rdExphow, ShowHide)
+    addHandlerChanged(rdExpfct, ShowHide)
     addHandlerClicked(btCancel, function(...) dispose(DEenv$expw))
     addHandlerClicked(btOk, onOKclick)
     ShowHide()
     visible(DEenv$expw) <- TRUE
-    focus(btCancel)
+    focus(btCancel) <- TRUE
 }

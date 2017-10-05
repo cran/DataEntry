@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: DataEntry 0.9-2\n"
-"POT-Creation-Date: 2017-07-13 12:10\n"
+"Project-Id-Version: DataEntry 0.9-2.9\n"
+"POT-Creation-Date: 2017-08-08 21:17\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -9,6 +9,9 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+
+msgid "Data already entered might be lost if you change the attributes of variables."
+msgstr ""
 
 msgid "Cannot edit 'id'."
 msgstr ""
@@ -94,9 +97,6 @@ msgstr ""
 msgid "ID \"%d\" not found. Please, select an item."
 msgstr ""
 
-msgid "Data exported to \"%s\""
-msgstr ""
-
 msgid "Export data"
 msgstr ""
 
@@ -148,13 +148,22 @@ msgstr ""
 msgid "What to do with variable labels?"
 msgstr ""
 
-msgid "Nothing"
+msgid "Add a \"label\" attribute to each column"
 msgstr ""
 
 msgid "Add a \"variable.labels\" attribute to the data.frame"
 msgstr ""
 
-msgid "Add a \"label\" attribute to each column"
+msgid "Nothing"
+msgstr ""
+
+msgid "Data exported to \"%s\"."
+msgstr ""
+
+msgid "Data exported to \"%s\", and script generated as \"%s\"."
+msgstr ""
+
+msgid "Data exported to \"%s\""
 msgstr ""
 
 msgid "New project"
@@ -184,6 +193,9 @@ msgstr ""
 msgid "Text representing missing values:"
 msgstr ""
 
+msgid "Edit box width (number of characters):"
+msgstr ""
+
 msgid "Application options"
 msgstr ""
 
@@ -200,6 +212,9 @@ msgid "Number of backups to keep:"
 msgstr ""
 
 msgid "Default"
+msgstr ""
+
+msgid "Please, enter a integer number between 1 and 999."
 msgstr ""
 
 msgid "Please, enter a positive integer number."
@@ -287,6 +302,9 @@ msgid "Choose a project and click OK."
 msgstr ""
 
 msgid "This is a backup file.\nIf you really want to use it, remove \"%s\" from its name."
+msgstr ""
+
+msgid "DataEntry"
 msgstr ""
 
 msgid "If necessary, type 'DataEntry()' to start the application again."
